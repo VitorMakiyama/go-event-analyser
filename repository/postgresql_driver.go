@@ -68,15 +68,19 @@ func OpenConn() (*sql.DB, error) {
 	return db, err
 }
 
-func (pr PostgreSQLRepository) InsertSubject(s Subject) (id int, err error) {
-	sql := `INSERT INTO subjects (name, description) VALUES ($1, $2)`
+func (pr PostgreSQLRepository) InsertSubject(s Subject) (int64, error) {
+	var id int64 = -1
+	sql := `INSERT INTO subjects (name, description) VALUES ($1, $2) RETURNING id`
 
-	err = pr.db.QueryRow(sql, s.Name, s.Description).Scan(&id)
+	err := pr.db.QueryRow(sql, s.Name, s.Description).Scan(&id)
+	if err != nil {
+		return id, err
+	}
 
-	return id, err
+	return id, nil
 }
 
-func (pr PostgreSQLRepository) GetSubject(id int) (s Subject, err error) {
+func (pr PostgreSQLRepository) GetSubject(id int64) (s Subject, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM subjects WHERE id = $1`, id)
 
 	err = row.Scan(&s.ID, &s.Name, &s.Description)
@@ -92,21 +96,32 @@ func (pr PostgreSQLRepository) UpdateSubject(s Subject) (int64, error) {
 	return result.RowsAffected()
 }
 
-func (pr PostgreSQLRepository) DeleteSubject(id int) (int64, error) {
-	panic("unimplemented")
+func (pr PostgreSQLRepository) DeleteSubject(id int64) (int64, error) {
+	result, err := pr.db.Exec(`DELETE FROM subjects WHERE id=$1`, id)
+	if err != nil {
+		return -1, err
+	}
+
+	return result.RowsAffected()
 }
 
+// Events
+
 // InsertEvent implements [Repository].
-func (pr PostgreSQLRepository) InsertEvent(e Event) (id int, err error) {
-	sql := `INSERT INTO events (subject_id, ocurrences, insert_ts, last_update) VALUES ($1, $2, $3, $4)`
+func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
+	var id int64 = -1
+	sql := `INSERT INTO events (subject_id, ocurrences, insert_ts, last_update) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	err = pr.db.QueryRow(sql, e.SubjectID, e.Ocurrences, e.InsertTS, e.LastUpdate).Scan(&id)
+	err := pr.db.QueryRow(sql, e.SubjectID, e.Ocurrences, e.InsertTS, e.LastUpdate).Scan(&id)
+	if err != nil {
+		return id, err
+	}
 
-	return id, err
+	return id, nil
 }
 
 // GetEvent implements [Repository].
-func (pr PostgreSQLRepository) GetEvent(id int) (e Event, err error) {
+func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM events WHERE id = $1`, id)
 
 	err = row.Scan(&e.SubjectID, &e.Ocurrences, &e.InsertTS, &e.LastUpdate)
@@ -124,7 +139,7 @@ func (pr PostgreSQLRepository) UpdateEvent(e Event) (int64, error) {
 }
 
 // DeleteEvent implements [Repository].
-func (pr PostgreSQLRepository) DeleteEvent(id int) (int64, error) {
+func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 	result, err := pr.db.Exec(`DELETE FROM events WHERE id=$1`, id)
 	if err != nil {
 		return -1, err

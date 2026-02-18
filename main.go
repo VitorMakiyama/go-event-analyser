@@ -20,6 +20,11 @@ func main() {
 	r.Post(eventsBase, handler.CreateEvent)
 	r.Get(eventsBase, handler.GetEvent)
 
+	// Subjects
+	subjectBase := "/subjects"
+	r.Post(subjectBase, handler.CreateSubject)
+	r.Get(subjectBase, handler.GetSubject)
+
 	log.Println("Listening on port 3333...")
 	http.ListenAndServe(":3333", r)
 }
