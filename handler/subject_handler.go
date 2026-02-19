@@ -16,10 +16,18 @@ type CreateSubjectRequest struct {
 	Description string `json:"description"`
 }
 
-type CreateSubjectResponse struct {
+type SubjectResponse struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+}
+
+func CreateResponse(s repository.Subject) repository.Subject {
+	return repository.Subject{
+		ID:          s.ID,
+		Name:        s.Name,
+		Description: s.Description,
+	}
 }
 
 func CreateSubject(w http.ResponseWriter, r *http.Request) {
@@ -35,18 +43,15 @@ func CreateSubject(w http.ResponseWriter, r *http.Request) {
 		Name:        request.Name,
 		Description: request.Description,
 	}
-	id, err := repo.InsertSubject(newSubject)
+	newSubject.ID, err = repo.InsertSubject(newSubject)
 	if err != nil {
 		fmt.Println("error inserting subject: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	response := CreateSubjectResponse{
-		ID:          id,
-		Name:        newSubject.Name,
-		Description: newSubject.Description,
-	}
+	response := CreateResponse(newSubject)
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
@@ -59,16 +64,18 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := repo.GetSubject(id)
+	subject, err := repo.GetSubject(id)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows") {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		fmt.Println("error getting event: ", err)
+		fmt.Println("error getting subject: ", err)
 		return
 	}
 
-	json.NewEncoder(w).Encode(event)
+	response := CreateResponse(subject)
+
+	json.NewEncoder(w).Encode(response)
 }

@@ -19,6 +19,7 @@ func main() {
 	eventsBase := "/events"
 	r.Post(eventsBase, handler.CreateEvent)
 	r.Get(eventsBase, handler.GetEvent)
+	r.Put(eventsBase, handler.UpdateEvent)
 
 	// Subjects
 	subjectBase := "/subjects"

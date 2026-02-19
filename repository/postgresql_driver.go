@@ -87,13 +87,15 @@ func (pr PostgreSQLRepository) GetSubject(id int64) (s Subject, err error) {
 	return s, err
 }
 
-func (pr PostgreSQLRepository) UpdateSubject(s Subject) (int64, error) {
-	result, err := pr.db.Exec(`UPDATE subjects SET name=$2, description=$3 WHERE id=$1`, s.ID, s.Name, s.Description)
+func (pr PostgreSQLRepository) UpdateSubject(s Subject) (Subject, error) {
+	uSubject := Subject{}
+	sql := `UPDATE subjects SET name=$2, description=$3 WHERE id=$1 RETURNING id, name, description`
+	err := pr.db.QueryRow(sql, s.ID, s.Name, s.Description).Scan(&uSubject.ID, &uSubject.Name, &uSubject.Description)
 	if err != nil {
-		return -1, err
+		return uSubject, err
 	}
 
-	return result.RowsAffected()
+	return uSubject, nil
 }
 
 func (pr PostgreSQLRepository) DeleteSubject(id int64) (int64, error) {
@@ -129,13 +131,15 @@ func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 }
 
 // UpdateEvent implements [Repository].
-func (pr PostgreSQLRepository) UpdateEvent(e Event) (int64, error) {
-	result, err := pr.db.Exec(`UPDATE events SET subject_id=$2, ocurrences=$3, insert_ts=$4, last_update=CURRENT_TIMESTAMP() WHERE id=$1`, e.ID, e.SubjectID, e.Ocurrences, e.InsertTS)
+func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
+	uEvent := Event{}
+	sql := `UPDATE events SET subject_id=$2, ocurrences=$3, insert_ts=$4, last_update=CURRENT_TIMESTAMP() WHERE id=$1 RETURNING id, subject_id, ocurrences, insert_ts, last_update`
+	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Ocurrences, e.InsertTS).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Ocurrences, &uEvent.InsertTS, &uEvent.LastUpdate)
 	if err != nil {
-		return -1, err
+		return e, err
 	}
 
-	return result.RowsAffected()
+	return uEvent, nil
 }
 
 // DeleteEvent implements [Repository].
