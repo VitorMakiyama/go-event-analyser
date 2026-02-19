@@ -49,6 +49,24 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		InsertTS:   time.Now(),
 		LastUpdate: time.Now(),
 	}
+	if !request.InsertTS.IsZero() { // if it is not zero, insert_ts was sent
+		newEvent.InsertTS = request.InsertTS
+	}
+
+	// Verify if there is already a inserted_ts with the same date, return early with status 409 - Conflict
+	foundE, err := repo.CheckEventExistenceByDate(newEvent.InsertTS)
+	if err == nil {
+		response := CreateEventResponse(foundE)
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(response)
+		return
+	} else if !strings.Contains(err.Error(), "no rows in result") {
+		// if is another error, other than "no rows in result..." something is really wrong!
+		fmt.Printf("error checking event with date %s existence in db: %s\n", newEvent.InsertTS.Format(time.DateOnly), err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	newEvent.ID, err = repo.InsertEvent(newEvent)
 	if err != nil {
 		fmt.Println("error inserting event: ", err)
@@ -72,7 +90,7 @@ func GetEvent(w http.ResponseWriter, r *http.Request) {
 
 	event, err := repo.GetEvent(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
+		if strings.Contains(err.Error(), "no rows in result") {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)

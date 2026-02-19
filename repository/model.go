@@ -32,4 +32,5 @@ type Repository interface {
 	GetEvent(id int64) (Event, error)
 	UpdateEvent(e Event) (Event, error)
 	DeleteEvent(id int64) (int64, error)
+	CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error)
 }

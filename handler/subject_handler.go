@@ -66,7 +66,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 
 	subject, err := repo.GetSubject(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
+		if strings.Contains(err.Error(), "no rows in result") {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)

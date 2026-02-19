@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -150,4 +151,14 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 	}
 
 	return result.RowsAffected()
+}
+
+// Verifies if there is already a entry with the same date (based on insert_ts)
+func (pr PostgreSQLRepository) CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error) {
+	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_ts)=$1`, insert_ts.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Ocurrences, &foundE.InsertTS, &foundE.LastUpdate)
+	if err != nil {
+		return foundE, err
+	}
+
+	return foundE, nil
 }
