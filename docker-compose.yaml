@@ -1,4 +1,13 @@
 services:
+  go-event-analyser:
+    build: .
+    restart: always
+    ports:
+      - 3333:3333
+    env_file: ".env"
+    depends_on:
+      - db
+
   db:
     image: postgres:latest
     restart: always
@@ -14,7 +23,7 @@ services:
       - ./migrations:/docker-entrypoint-initdb.d
       #- ./postgres:/var/lib/postgresql # for PRD
     ports:
-      - 5432:5432
+      - 5442:5432
     env_file: ".env"
 
   adminer:
