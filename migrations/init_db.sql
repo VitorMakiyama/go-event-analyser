@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS subjects (
 CREATE TABLE IF NOT EXISTS events (
 	id INT NOT NULL GENERATED ALWAYS AS IDENTITY,
   subject_id INT NOT NULL,
-  ocurrences INT,
+  occurrences INT,
   insert_ts TIMESTAMP,
   last_update TIMESTAMP,
   PRIMARY KEY (id),

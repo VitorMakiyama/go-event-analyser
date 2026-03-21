@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-event-analyser/repository"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,26 +12,26 @@ import (
 )
 
 type EventRequest struct {
-	SubjectID  int64     `json:"subject_id"`
-	Ocurrences int       `json:"ocurrences"`
-	InsertTS   time.Time `json:"inserted_ts"`
+	SubjectID   int64  `json:"subject_id"`
+	Occurrences int    `json:"occurrences"`
+	InsertTS    string `json:"insert_ts"`
 }
 
 type EventResponse struct {
-	ID         int64     `json:"id"`
-	SubjectID  int64     `json:"subject_id"`
-	Ocurrences int       `json:"ocurrences"`
-	InsertTS   time.Time `json:"inserted_ts"`
-	LastUpdate time.Time `json:"last_update"`
+	ID          int64     `json:"id"`
+	SubjectID   int64     `json:"subject_id"`
+	Occurrences int       `json:"occurrences"`
+	InsertTS    time.Time `json:"insert_ts"`
+	LastUpdate  time.Time `json:"last_update"`
 }
 
 func CreateEventResponse(e repository.Event) EventResponse {
 	return EventResponse{
-		ID:         e.ID,
-		SubjectID:  e.SubjectID,
-		Ocurrences: e.Ocurrences,
-		InsertTS:   e.InsertTS,
-		LastUpdate: e.LastUpdate,
+		ID:          e.ID,
+		SubjectID:   e.SubjectID,
+		Occurrences: e.Occurrences,
+		InsertTS:    e.InsertTS,
+		LastUpdate:  e.LastUpdate,
 	}
 }
 
@@ -43,14 +44,19 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newEvent := repository.Event{
-		SubjectID:  request.SubjectID,
-		Ocurrences: request.Ocurrences,
-		InsertTS:   time.Now(),
-		LastUpdate: time.Now(),
+	insertTS, err := parseTimeFromVariousString(request.InsertTS)
+	if err != nil {
+		log.Printf("error parsing time from timestring (%s): %v", request.InsertTS, err)
 	}
-	if !request.InsertTS.IsZero() { // if it is not zero, insert_ts was sent
-		newEvent.InsertTS = request.InsertTS
+
+	newEvent := repository.Event{
+		SubjectID:   request.SubjectID,
+		Occurrences: request.Occurrences,
+		InsertTS:    time.Now(),
+		LastUpdate:  time.Now(),
+	}
+	if !insertTS.IsZero() { // if it is not zero, insert_ts was sent
+		newEvent.InsertTS = insertTS
 	}
 
 	// Verify if there is already a inserted_ts with the same date, return early with status 409 - Conflict
@@ -78,6 +84,39 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+func parseTimeFromVariousString(timeString string) (time.Time, error) {
+	// Tries to parse using RFC3339
+	parsedTime, err := time.Parse(time.RFC3339, timeString)
+	if err == nil {
+		log.Printf("Parsed %v, with RFC3339 (%s) the received time string: %s\n", parsedTime, time.RFC3339, timeString)
+		return parsedTime, nil
+	}
+
+	// Then tries with RFC3339Nano
+	parsedTime, err = time.Parse(time.RFC3339Nano, timeString)
+	if err == nil {
+		log.Printf("Parsed %v, with RFC3339Nano (%s) the received time string: %s\n", parsedTime, time.RFC3339Nano, timeString)
+		return parsedTime, nil
+	}
+
+	// Then tries with DateTime
+	parsedTime, err = time.Parse(time.DateTime, timeString)
+	if err == nil {
+		log.Printf("Parsed %v, with DateTime (%s) the received time string: %s\n", parsedTime, time.DateTime, timeString)
+		return parsedTime, nil
+	}
+
+	// Then tries with a custom layout
+	customLayout := "2006-01-02T15:04:05.999999"
+	parsedTime, err = time.Parse(customLayout, timeString)
+	if err == nil {
+		log.Printf("Parsed %v, with custom layout (%s) the received time string: %s\n", parsedTime, customLayout, timeString)
+		return parsedTime, nil
+	}
+
+	return time.Time{}, err
 }
 
 func GetEvent(w http.ResponseWriter, r *http.Request) {
@@ -119,12 +158,17 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	insertTS, err := parseTimeFromVariousString(request.InsertTS)
+	if err != nil {
+		log.Printf("error parsing time from timestring (%s): %v", request.InsertTS, err)
+	}
+
 	updatedEvent := repository.Event{
-		ID:         id,
-		SubjectID:  request.SubjectID,
-		Ocurrences: request.Ocurrences,
-		InsertTS:   request.InsertTS,
-		LastUpdate: time.Now(),
+		ID:          id,
+		SubjectID:   request.SubjectID,
+		Occurrences: request.Occurrences,
+		InsertTS:    insertTS,
+		LastUpdate:  time.Now(),
 	}
 	updatedEvent, err = repo.UpdateEvent(updatedEvent)
 	if err != nil {

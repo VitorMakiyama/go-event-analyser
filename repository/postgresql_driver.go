@@ -115,7 +115,7 @@ func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 	var id int64 = -1
 	sql := `INSERT INTO events (subject_id, ocurrences, insert_ts, last_update) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	err := pr.db.QueryRow(sql, e.SubjectID, e.Ocurrences, e.InsertTS, e.LastUpdate).Scan(&id)
+	err := pr.db.QueryRow(sql, e.SubjectID, e.Occurrences, e.InsertTS, e.LastUpdate).Scan(&id)
 	if err != nil {
 		return id, err
 	}
@@ -127,7 +127,7 @@ func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM events WHERE id = $1`, id)
 
-	err = row.Scan(&e.SubjectID, &e.Ocurrences, &e.InsertTS, &e.LastUpdate)
+	err = row.Scan(&e.SubjectID, &e.Occurrences, &e.InsertTS, &e.LastUpdate)
 	return e, err
 }
 
@@ -135,7 +135,7 @@ func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
 	uEvent := Event{}
 	sql := `UPDATE events SET subject_id=$2, ocurrences=$3, insert_ts=$4, last_update=CURRENT_TIMESTAMP() WHERE id=$1 RETURNING id, subject_id, ocurrences, insert_ts, last_update`
-	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Ocurrences, e.InsertTS).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Ocurrences, &uEvent.InsertTS, &uEvent.LastUpdate)
+	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Occurrences, e.InsertTS).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Occurrences, &uEvent.InsertTS, &uEvent.LastUpdate)
 	if err != nil {
 		return e, err
 	}
@@ -155,7 +155,7 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 
 // Verifies if there is already a entry with the same date (based on insert_ts)
 func (pr PostgreSQLRepository) CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error) {
-	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_ts)=$1`, insert_ts.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Ocurrences, &foundE.InsertTS, &foundE.LastUpdate)
+	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_ts)=$1`, insert_ts.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
 	if err != nil {
 		return foundE, err
 	}

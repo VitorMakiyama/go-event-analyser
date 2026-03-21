@@ -11,11 +11,11 @@ type Subject struct {
 }
 
 type Event struct {
-	ID         int64
-	SubjectID  int64
-	Ocurrences int
-	InsertTS   time.Time
-	LastUpdate time.Time
+	ID          int64
+	SubjectID   int64
+	Occurrences int
+	InsertTS    time.Time
+	LastUpdate  time.Time
 }
 
 func (e *Event) GetDate() string {
