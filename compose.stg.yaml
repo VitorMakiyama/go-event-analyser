@@ -1,14 +1,18 @@
 services:
   go-event-analyser:
+    container_name: go-event-analyser
     build: .
     restart: always
     ports:
-      - 3333:3333
+      - 1001:3333
     env_file: ".env"
     depends_on:
       - db
+    networks:
+      - go-event-analyser
 
   db:
+    container_name: go-event-postgres
     image: postgres:latest
     restart: always
     # set shared memory limit when using docker compose
@@ -23,11 +27,21 @@ services:
       - ./migrations:/docker-entrypoint-initdb.d
       #- ./postgres:/var/lib/postgresql # for PRD
     ports:
-      - 5442:5432
+      - 5442:5432 # HOST_PORT:CONTAINER_PORT
     env_file: ".env"
+    networks:
+      - go-event-analyser
 
   adminer:
+    container_name: go-event-adminer
     image: adminer
     restart: always
     ports:
       - 5433:8080
+    networks:
+      - go-event-analyser
+
+networks:
+  go-event-analyser:
+    name: go-event-analyser-net
+    external: false
