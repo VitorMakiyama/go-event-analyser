@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"go-event-analyser/handler"
 	"log"
 	"net/http"
@@ -15,6 +16,9 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// Ping...
+	r.Get("/ping", ping)
+
 	// Events
 	eventsBase := "/events"
 	r.Post(eventsBase, handler.CreateEvent)
@@ -28,4 +32,9 @@ func main() {
 
 	log.Println("Listening on port 3333...")
 	http.ListenAndServe(":3333", r)
+}
+
+// Function for the client to make sure the server is up and running!
+func ping(w http.ResponseWriter, _ *http.Request) {
+	json.NewEncoder(w).Encode("pong")
 }
