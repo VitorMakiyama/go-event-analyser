@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -113,10 +114,15 @@ func (pr PostgreSQLRepository) DeleteSubject(id int64) (int64, error) {
 // InsertEvent implements [Repository].
 func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 	var id int64 = -1
-	sql := `INSERT INTO events (subject_id, ocurrences, insert_ts, last_update) VALUES ($1, $2, $3, $4) RETURNING id`
+	sql := `INSERT INTO events (subject_id, occurrences, insert_ts, insert_utc, last_update) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := pr.db.QueryRow(sql, e.SubjectID, e.Occurrences, e.InsertTS, e.LastUpdate).Scan(&id)
+	err := pr.db.QueryRow(sql, e.SubjectID, e.Occurrences, e.InsertTS, e.InsertUTC, e.LastUpdate).Scan(&id)
 	if err != nil {
+		if strings.Contains(err.Error(), "violates foreign key constraint \"fk_subjects\"") {
+			return id, ErrorSubjectIDNotFound{
+				SubjectID: e.SubjectID,
+			}
+		}
 		return id, err
 	}
 
@@ -127,16 +133,26 @@ func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM events WHERE id = $1`, id)
 
-	err = row.Scan(&e.SubjectID, &e.Occurrences, &e.InsertTS, &e.LastUpdate)
+	err = row.Scan(&e.ID, &e.SubjectID, &e.Occurrences, &e.InsertTS, &e.InsertUTC, &e.LastUpdate)
+	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+		return e, ErrorEventIDNotFound{
+			EventID: e.ID,
+		}
+	}
 	return e, err
 }
 
 // UpdateEvent implements [Repository].
 func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
 	uEvent := Event{}
-	sql := `UPDATE events SET subject_id=$2, ocurrences=$3, insert_ts=$4, last_update=CURRENT_TIMESTAMP() WHERE id=$1 RETURNING id, subject_id, ocurrences, insert_ts, last_update`
-	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Occurrences, e.InsertTS).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Occurrences, &uEvent.InsertTS, &uEvent.LastUpdate)
+	sql := `UPDATE events SET subject_id=$2, occurrences=$3, last_update=$4 WHERE id=$1 RETURNING id, subject_id, occurrences, insert_ts, insert_utc, last_update`
+	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Occurrences, e.LastUpdate).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Occurrences, &uEvent.InsertTS, &uEvent.InsertUTC, &uEvent.LastUpdate)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return e, ErrorEventIDNotFound{
+				EventID: e.ID,
+			}
+		}
 		return e, err
 	}
 
@@ -153,12 +169,29 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-// Verifies if there is already a entry with the same date (based on insert_ts)
-func (pr PostgreSQLRepository) CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error) {
-	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_ts)=$1`, insert_ts.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
+// Verifies if there is already a entry with the same date (based on insert_utc)
+func (pr PostgreSQLRepository) CheckEventExistenceByDate(insert_utc time.Time) (foundE Event, err error) {
+	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_utc)=$1`, insert_utc.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
 	if err != nil {
 		return foundE, err
 	}
 
 	return foundE, nil
+}
+
+// Custom Errors for this postgres driver
+type ErrorSubjectIDNotFound struct {
+	SubjectID int64
+}
+
+func (e ErrorSubjectIDNotFound) Error() string {
+	return fmt.Sprintf("subject id %d not found", e.SubjectID)
+}
+
+type ErrorEventIDNotFound struct {
+	EventID int64
+}
+
+func (e ErrorEventIDNotFound) Error() string {
+	return fmt.Sprintf("event id %d not found", e.EventID)
 }

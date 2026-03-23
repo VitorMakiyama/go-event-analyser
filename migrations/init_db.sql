@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS events (
   subject_id INT NOT NULL,
   occurrences INT,
   insert_ts TIMESTAMP,
+  insert_utc TIMESTAMP,
   last_update TIMESTAMP,
   PRIMARY KEY (id),
   CONSTRAINT fk_subjects

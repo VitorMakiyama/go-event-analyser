@@ -15,6 +15,7 @@ type Event struct {
 	SubjectID   int64
 	Occurrences int
 	InsertTS    time.Time
+	InsertUTC   time.Time
 	LastUpdate  time.Time
 }
 

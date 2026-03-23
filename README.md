@@ -49,6 +49,7 @@ erDiagram
         DATE date
         INT ocurrences
         TIMESTAMP insert_ts
+        TIMESTAMP insert_utc
         TIMESTAMP last_update
     }
 ```
@@ -69,14 +70,16 @@ erDiagram
 
 ### Event
 
-| Field       | Type      | Description               |
-| ----------- | --------- | ------------------------- |
-| id          | int       | Primary Key               |
-| subject_id  | int       | Foreign Key → Subject(id) |
-| date        | date      | Event date                |
-| ocurrences  | int       | Number of occurrences     |
-| insert_ts   | timestamp | Record creation timestamp |
-| last_update | timestamp | Last update timestamp     |
+| Field       | Type      | Description                                    |
+| ----------- | --------- | ---------------------------------------------- |
+| id          | int       | Primary Key                                    |
+| subject_id  | int       | Foreign Key → Subject(id)                      |
+| date        | date      | Event date                                     |
+| ocurrences  | int       | Number of occurrences                          |
+| insert_ts   | timestamp | Record creation timestamp on server local time |
+| insert_utc  | timestamp | Record creation timestamp UTC                  |
+| last_update | timestamp | Last update timestamp UTC                      |
+
 
 ---
 
@@ -151,4 +154,4 @@ MIT License
 
 ## 👨‍💻 Author
 
-Your Name Here
+VitorMakiyama
