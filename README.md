@@ -1,4 +1,4 @@
-# Event Registration App (Go)
+# Event Analyser App (Go)
 
 An application built in **Go** to register events, manage their subjects, store occurrences, and generate simple reports. The system uses **PostgreSQL** as its primary database.
 
@@ -27,7 +27,7 @@ An application built in **Go** to register events, manage their subjects, store 
 The application uses two main entities:
 
 * **Subject** → Represents the topic or category of an event
-* **Event** → Represents an occurrence tied to a subject
+* **Event** → Represents an occurrence tied to a subject. Times in this entity are stored with time zone (UTC) in DB, but are treated and analysed in local time in the API
 
 ---
 
@@ -48,9 +48,8 @@ erDiagram
         INT subject_id FK
         DATE date
         INT ocurrences
-        TIMESTAMP insert_ts
-        TIMESTAMP insert_utc
-        TIMESTAMP last_update
+        TIMESTAMPTZ insert_ts
+        TIMESTAMPTZ last_update
     }
 ```
 
@@ -70,15 +69,14 @@ erDiagram
 
 ### Event
 
-| Field       | Type      | Description                                    |
-| ----------- | --------- | ---------------------------------------------- |
-| id          | int       | Primary Key                                    |
-| subject_id  | int       | Foreign Key → Subject(id)                      |
-| date        | date      | Event date                                     |
-| ocurrences  | int       | Number of occurrences                          |
-| insert_ts   | timestamp | Record creation timestamp on server local time |
-| insert_utc  | timestamp | Record creation timestamp UTC                  |
-| last_update | timestamp | Last update timestamp UTC                      |
+| Field       | Type        | Description                             |
+| ----------- | ----------- | --------------------------------------- |
+| id          | int         | Primary Key                             |
+| subject_id  | int         | Foreign Key → Subject(id)               |
+| date        | date        | Event date                              |
+| ocurrences  | int         | Number of occurrences                   |
+| insert_ts   | timestamptz | Record creation timestamp on server UTC |
+| last_update | timestamptz | Last update timestamp in local UTC      |
 
 
 ---
@@ -106,7 +104,7 @@ Subject (1) ────────< (N) Event
 ### Clone the repository
 
 ```bash
-git clone https://github.com/your-username/event-registration-app.git
+git clone https://github.com/VitorMakiyama/go-event-analyser.git
 cd event-registration-app
 ```
 
@@ -114,7 +112,7 @@ cd event-registration-app
 
 Follow the `.env-example`, clone it and create your own `.env`
 
-### Run migrations
+### Run migrations, if needed
 
 (You can use tools like `golang-migrate`, `goose`, or custom SQL scripts.)
 

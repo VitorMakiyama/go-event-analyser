@@ -14,12 +14,11 @@ type Event struct {
 	ID          int64
 	SubjectID   int64
 	Occurrences int
-	InsertTS    time.Time
-	InsertUTC   time.Time
+	InsertTS    time.Time // Both times are persited on db as UTC, but are returned from API as Local time
 	LastUpdate  time.Time
 }
 
-func (e *Event) GetDate() string {
+func (e *Event) GetDateOnly() string {
 	return e.InsertTS.Format(time.DateOnly)
 }
 

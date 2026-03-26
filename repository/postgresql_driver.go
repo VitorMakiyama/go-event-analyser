@@ -14,7 +14,8 @@ import (
 )
 
 type PostgreSQLRepository struct {
-	db *sql.DB
+	db              *sql.DB
+	currentLocation *time.Location
 }
 
 func NewPostgreSQLRepository() Repository {
@@ -23,8 +24,14 @@ func NewPostgreSQLRepository() Repository {
 		panic(fmt.Sprintf("could not connect to PostreSQL: %v", err))
 	}
 
+	local, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		panic(fmt.Sprintf("could not load location: %v", err))
+	}
+
 	return PostgreSQLRepository{
-		db: db,
+		db:              db,
+		currentLocation: local,
 	}
 }
 
@@ -109,14 +116,14 @@ func (pr PostgreSQLRepository) DeleteSubject(id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-// Events
+/* Events */
 
 // InsertEvent implements [Repository].
 func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 	var id int64 = -1
-	sql := `INSERT INTO events (subject_id, occurrences, insert_ts, insert_utc, last_update) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	sql := `INSERT INTO events (subject_id, occurrences, insert_ts, last_update) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	err := pr.db.QueryRow(sql, e.SubjectID, e.Occurrences, e.InsertTS, e.InsertUTC, e.LastUpdate).Scan(&id)
+	err := pr.db.QueryRow(sql, e.SubjectID, e.Occurrences, e.InsertTS, e.LastUpdate).Scan(&id)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates foreign key constraint \"fk_subjects\"") {
 			return id, ErrorSubjectIDNotFound{
@@ -133,20 +140,21 @@ func (pr PostgreSQLRepository) InsertEvent(e Event) (int64, error) {
 func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM events WHERE id = $1`, id)
 
-	err = row.Scan(&e.ID, &e.SubjectID, &e.Occurrences, &e.InsertTS, &e.InsertUTC, &e.LastUpdate)
+	err = row.Scan(&e.ID, &e.SubjectID, &e.Occurrences, &e.InsertTS, &e.LastUpdate)
 	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
 		return e, ErrorEventIDNotFound{
-			EventID: e.ID,
+			EventID: id,
 		}
 	}
+	convertTimesToLocalTime(&e)
 	return e, err
 }
 
 // UpdateEvent implements [Repository].
 func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
 	uEvent := Event{}
-	sql := `UPDATE events SET subject_id=$2, occurrences=$3, last_update=$4 WHERE id=$1 RETURNING id, subject_id, occurrences, insert_ts, insert_utc, last_update`
-	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Occurrences, e.LastUpdate).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Occurrences, &uEvent.InsertTS, &uEvent.InsertUTC, &uEvent.LastUpdate)
+	sql := `UPDATE events SET subject_id=$2, occurrences=$3, last_update=$4 WHERE id=$1 RETURNING id, subject_id, occurrences, insert_ts, last_update`
+	err := pr.db.QueryRow(sql, e.ID, e.SubjectID, e.Occurrences, e.LastUpdate).Scan(&uEvent.ID, &uEvent.SubjectID, &uEvent.Occurrences, &uEvent.InsertTS, &uEvent.LastUpdate)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			return e, ErrorEventIDNotFound{
@@ -156,6 +164,7 @@ func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
 		return e, err
 	}
 
+	convertTimesToLocalTime(&uEvent)
 	return uEvent, nil
 }
 
@@ -169,14 +178,23 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-// Verifies if there is already a entry with the same date (based on insert_utc)
-func (pr PostgreSQLRepository) CheckEventExistenceByDate(insert_utc time.Time) (foundE Event, err error) {
-	err = pr.db.QueryRow(`SELECT * FROM events WHERE DATE(insert_utc)=$1`, insert_utc.Format(time.DateOnly)).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
+
+//	Verifies if there is already a entry with the same date (based on insert_ts) converting both to local date, via DATE and AT TIME ZONE
+// passing the currently loaded IANA timezone, in database. insert_ts should always be on localtime
+func (pr PostgreSQLRepository) CheckEventExistenceByDate(insertTS time.Time) (foundE Event, err error) {
+	sql := `SELECT * FROM events WHERE DATE(insert_ts AT TIME ZONE $2)=DATE($1 AT TIME ZONE $2)`
+	err = pr.db.QueryRow(sql, insertTS.Format(time.RFC3339), pr.currentLocation.String()).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
 	if err != nil {
 		return foundE, err
 	}
 
+	convertTimesToLocalTime(&foundE)
 	return foundE, nil
+}
+
+func convertTimesToLocalTime(event *Event) {
+	event.InsertTS = event.InsertTS.Local()
+	event.LastUpdate = event.LastUpdate.Local()
 }
 
 // Custom Errors for this postgres driver

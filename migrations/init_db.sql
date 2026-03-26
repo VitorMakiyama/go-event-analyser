@@ -9,9 +9,8 @@ CREATE TABLE IF NOT EXISTS events (
 	id INT NOT NULL GENERATED ALWAYS AS IDENTITY,
   subject_id INT NOT NULL,
   occurrences INT,
-  insert_ts TIMESTAMP,
-  insert_utc TIMESTAMP,
-  last_update TIMESTAMP,
+  insert_ts TIMESTAMPTZ, -- this backend will always store this timestamp in UTC
+  last_update TIMESTAMPTZ, -- Always UTC
   PRIMARY KEY (id),
   CONSTRAINT fk_subjects
     FOREIGN KEY(subject_id)

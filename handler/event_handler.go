@@ -14,14 +14,14 @@ import (
 type EventRequest struct {
 	SubjectID   int64  `json:"subject_id"`
 	Occurrences int    `json:"occurrences"`
-	InsertUTC   string `json:"insert_utc"`
+	InsertTS    string `json:"insert_ts"`
 }
 
 type EventResponse struct {
 	ID          int64     `json:"id"`
 	SubjectID   int64     `json:"subject_id"`
 	Occurrences int       `json:"occurrences"`
-	InsertUTC   time.Time `json:"insert_utc"`
+	InsertTS    time.Time `json:"insert_ts"`
 	LastUpdate  time.Time `json:"last_update"`
 }
 
@@ -30,23 +30,21 @@ func CreateEventResponse(e repository.Event) EventResponse {
 		ID:          e.ID,
 		SubjectID:   e.SubjectID,
 		Occurrences: e.Occurrences,
-		InsertUTC:   e.InsertUTC,
+		InsertTS:    e.InsertTS,
 		LastUpdate:  e.LastUpdate,
 	}
 }
 
-func CreateEventFromRequest(request EventRequest, parsedInsertUTC time.Time) repository.Event {
+func CreateEventFromRequest(request EventRequest, parsedInsertTS time.Time) repository.Event {
 	newEvent := repository.Event{
 		SubjectID:   request.SubjectID,
 		Occurrences: request.Occurrences,
 		InsertTS:    time.Now(),
-		InsertUTC:   time.Now().UTC(),
-		LastUpdate:  time.Now().UTC(),
+		LastUpdate:  time.Now(),
 	}
 
-	if !parsedInsertUTC.IsZero() { // if it is not zero, insert_ts was sent
-		newEvent.InsertTS = parsedInsertUTC.Local()
-		newEvent.InsertUTC = parsedInsertUTC
+	if !parsedInsertTS.IsZero() { // if it is not zero, insert_ts was sent
+		newEvent.InsertTS = parsedInsertTS.Local()
 	}
 
 	return newEvent
@@ -61,23 +59,24 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	insertUTC, err := parseTimeFromVariousString(request.InsertUTC)
+	insertTS, err := parseTimeFromStringRFC3339(request.InsertTS)
 	if err != nil {
-		log.Printf("error parsing time from timestring (%s): %v", request.InsertUTC, err)
+		log.Printf("error parsing time from timestring (%s): %v", request.InsertTS, err)
 	}
 
-	newEvent := CreateEventFromRequest(request, insertUTC)
+	newEvent := CreateEventFromRequest(request, insertTS)
 
-	// Verify if there is already a inserted_ts with the same date, return early with status 409 - Conflict
-	foundE, err := repo.CheckEventExistenceByDate(newEvent.InsertUTC)
+	// Verify if there is already a inserted_ts with the same date (comparing both on Local time), return early with status 409 - Conflict
+	foundE, err := repo.CheckEventExistenceByDate(newEvent.InsertTS)
 	if err == nil {
+		// Found an Event with same inserted_ts, conflict!
 		response := CreateEventResponse(foundE)
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(response)
 		return
 	} else if !strings.Contains(err.Error(), "no rows in result") {
 		// if is another error, other than "no rows in result..." something is really wrong!
-		log.Printf("error checking event with date %s existence in db: %s\n", newEvent.InsertTS.Format(time.DateOnly), err.Error())
+		log.Printf("error checking event with date %s existence in db: %s\n", newEvent.InsertTS.Format(time.RFC3339), err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -102,33 +101,14 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func parseTimeFromVariousString(timeString string) (time.Time, error) {
-	// Tries to parse using RFC3339
+/*
+* Function that parses a string date in RFC3339 format ("2006-01-02T15:04:05Z07:00")
+ */
+func parseTimeFromStringRFC3339(timeString string) (time.Time, error) {
+	// Tries to parse using RFC3339 PREFERRED
 	parsedTime, err := time.Parse(time.RFC3339, timeString)
 	if err == nil {
-		log.Printf("Parsed %v, with RFC3339 (%s) the received time string: %s\n", parsedTime, time.RFC3339, timeString)
-		return parsedTime, nil
-	}
-
-	// Then tries with RFC3339Nano
-	parsedTime, err = time.Parse(time.RFC3339Nano, timeString)
-	if err == nil {
-		log.Printf("Parsed %v, with RFC3339Nano (%s) the received time string: %s\n", parsedTime, time.RFC3339Nano, timeString)
-		return parsedTime, nil
-	}
-
-	// Then tries with DateTime
-	parsedTime, err = time.Parse(time.DateTime, timeString)
-	if err == nil {
-		log.Printf("Parsed %v, with DateTime (%s) the received time string: %s\n", parsedTime, time.DateTime, timeString)
-		return parsedTime, nil
-	}
-
-	// Then tries with a custom layout
-	customLayout := "2006-01-02T15:04:05.999999"
-	parsedTime, err = time.Parse(customLayout, timeString)
-	if err == nil {
-		log.Printf("Parsed %v, with custom layout (%s) the received time string: %s\n", parsedTime, customLayout, timeString)
+		log.Printf("Parsed time string (%s), with RFC3339 (%s): %v\n", timeString, time.RFC3339, parsedTime)
 		return parsedTime, nil
 	}
 
@@ -145,12 +125,13 @@ func GetEvent(w http.ResponseWriter, r *http.Request) {
 
 	event, err := repo.GetEvent(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows in result") {
+		if errors.As(err, &repository.ErrorEventIDNotFound{}) {
+			log.Println("event_id not found in DB: ", err)
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("error getting event: ", err)
 		}
-		log.Println("error getting event: ", err)
 		return
 	}
 
@@ -168,10 +149,17 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oldEvent, err := repo.GetEvent(id)
-	if err != nil && errors.As(err, &repository.ErrorEventIDNotFound{}) {
-		log.Println("event_id not found in DB: ", err)
-		w.WriteHeader(http.StatusNotFound)
-		return
+	if err != nil {
+		if errors.As(err, &repository.ErrorEventIDNotFound{}) {
+			log.Println("event_id not found in DB: ", err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			// Unknwon error
+			log.Println("error getting event: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	request := EventRequest{}
@@ -186,7 +174,7 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		ID:          id,
 		SubjectID:   request.SubjectID,
 		Occurrences: request.Occurrences,
-		LastUpdate:  time.Now().UTC(),
+		LastUpdate:  time.Now(),
 	}
 	updatedEvent, err = repo.UpdateEvent(updatedEvent)
 	if err != nil {

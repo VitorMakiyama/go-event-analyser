@@ -1,6 +1,6 @@
 services:
   go-event-analyser:
-    container_name: go-event-analyser
+    container_name: go-event-analyser-stg
     build: .
     restart: always
     ports:
@@ -12,7 +12,7 @@ services:
       - go-event-analyser
 
   db:
-    container_name: go-event-postgres
+    container_name: go-event-postgres-stg
     image: postgres:latest
     restart: always
     # set shared memory limit when using docker compose
@@ -33,7 +33,7 @@ services:
       - go-event-analyser
 
   adminer:
-    container_name: go-event-adminer
+    container_name: go-event-adminer-stg
     image: adminer
     restart: always
     ports:
@@ -43,5 +43,5 @@ services:
 
 networks:
   go-event-analyser:
-    name: go-event-analyser-net
+    name: go-event-analyser-net-stg
     external: false

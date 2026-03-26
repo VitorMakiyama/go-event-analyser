@@ -5,10 +5,13 @@ import (
 	"go-event-analyser/handler"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+var LocalTZ time.Location
 
 func main() {
 	r := chi.NewRouter()
