@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-event-analyser/repository"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -38,6 +39,7 @@ func CreateSubject(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Printf("CreateSubject - Received request body: %v\n", request)
 
 	newSubject := repository.Subject{
 		Name:        request.Name,
@@ -63,6 +65,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Printf("GetSubject - Received request for id: %d\n", id)
 
 	subject, err := repo.GetSubject(id)
 	if err != nil {

@@ -59,10 +59,26 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate subjectID
+	_, err = repo.GetSubject(request.SubjectID)
+	if err != nil {
+		if errors.As(err, &repository.ErrorSubjectIDNotFound{}) {
+			log.Println("subject_id not found in DB: ", err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			// Unknonw error
+			log.Println("error inserting event: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	insertTS, err := parseTimeFromStringRFC3339(request.InsertTS)
 	if err != nil {
 		log.Printf("error parsing time from timestring (%s): %v", request.InsertTS, err)
 	}
+	log.Printf("CreateEvent - Received request body: %v\n", request)
 
 	newEvent := CreateEventFromRequest(request, insertTS)
 
@@ -122,6 +138,7 @@ func GetEvent(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Println("GetEvent - Received request for id: ", id)
 
 	event, err := repo.GetEvent(id)
 	if err != nil {
@@ -161,6 +178,7 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	log.Println("UpdateEvent - Received request for id: ", id)
 
 	request := EventRequest{}
 	err = json.NewDecoder(r.Body).Decode(&request)
@@ -169,6 +187,7 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Printf("UpdateEvent - Received request body: %v\n", request)
 
 	updatedEvent := repository.Event{
 		ID:          id,

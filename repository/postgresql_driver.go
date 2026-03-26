@@ -93,6 +93,12 @@ func (pr PostgreSQLRepository) GetSubject(id int64) (s Subject, err error) {
 	row := pr.db.QueryRow(`SELECT * FROM subjects WHERE id = $1`, id)
 
 	err = row.Scan(&s.ID, &s.Name, &s.Description)
+	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+		return s, ErrorSubjectIDNotFound{
+			SubjectID: id,
+		}
+	}
+
 	return s, err
 }
 
