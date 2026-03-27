@@ -48,7 +48,7 @@ func NewSettings() Settings {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file: ", err)
 	}
 
 	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))

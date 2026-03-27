@@ -1,8 +1,9 @@
 services:
   go-event-analyser:
     container_name: go-event-analyser-stg
-    build: .
-    restart: always
+    image: forgejoe.makiyama.dev.br/makiyama-dev/go-event-analyser:latest
+    # build: .
+    # restart: always
     ports:
       - 1002:3333
     env_file: ".env"
@@ -14,7 +15,7 @@ services:
   db:
     container_name: go-event-postgres-stg
     image: postgres:latest
-    restart: always
+    # restart: always
     # set shared memory limit when using docker compose
     shm_size: 128mb
     # or set shared memory limit when deploy via swarm stack
@@ -35,7 +36,7 @@ services:
   adminer:
     container_name: go-event-adminer-stg
     image: adminer
-    restart: always
+    # restart: always
     ports:
       - 5433:8080
     networks:

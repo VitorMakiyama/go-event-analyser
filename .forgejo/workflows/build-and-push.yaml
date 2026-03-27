@@ -1,0 +1,37 @@
+on: [push]
+jobs:
+  build-and-push:
+    runs-on: forgejoe-runner 
+    
+    # Define services, specifically a Docker-in-Docker container
+    services:
+      docker:
+        image: docker:dind # Use the Docker-in-Docker image
+        # Optional: set a DOCKER_HOST env var to access the DinD service
+        env:
+          DOCKER_HOST: tcp://docker:2375
+          DOCKER_TLS_CERTDIR: "" # Disable TLS in this secured private network
+         # O dind precisa de privilégios e variáveis específicas
+        options: --privileged
+    
+    steps:
+      - name: Install Tools
+        # Instalamos o docker-cli e git (pro checkout) no Alpine
+        run: apk add --no-cache docker-cli git 
+
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Use the checkout action to get your code
+
+      - name: Log in to the Container Registry
+        # Use environment variables and secrets for secure login
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login forgejoe.makiyama.dev.br --username "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+
+      - name: Build and push the Docker image
+        # Use 'docker build' and 'docker push' commands directly
+        env:
+          # Isso diz ao CLI para não procurar o Docker localmente, mas sim no serviço DinD
+          DOCKER_HOST: tcp://docker:2375
+        run: |
+          IMAGE_TAG=forgejoe.makiyama.dev.br/makiyama-dev/go-event-analyser:latest
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG

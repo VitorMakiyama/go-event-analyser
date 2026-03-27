@@ -1,7 +1,7 @@
 services:
   go-event-analyser:
     container_name: go-event-analyser
-    build: .
+    image: forgejoe.makiyama.dev.br/makiyama-dev/go-event-analyser:latest
     restart: always
     ports:
       - 1001:3333
