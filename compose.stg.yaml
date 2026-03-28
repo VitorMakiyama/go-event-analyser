@@ -7,6 +7,9 @@ services:
     ports:
       - 1002:3333
     env_file: ".env"
+    # injeta o .env local no container
+    volumes:
+      - ./.env:/usr/src/app/.env  
     depends_on:
       - db
     networks:
@@ -25,7 +28,7 @@ services:
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
     volumes:
-      - ./migrations:/docker-entrypoint-initdb.d
+      - ./migrations-stg:/docker-entrypoint-initdb.d
       #- ./postgres:/var/lib/postgresql # for PRD
     ports:
       - 5442:5432 # HOST_PORT:CONTAINER_PORT

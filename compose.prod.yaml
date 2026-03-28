@@ -6,6 +6,9 @@ services:
     ports:
       - 1001:3333
     env_file: ".env"
+    # injeta o .env local no container
+    volumes:
+      - ./.env:/usr/src/app/.env  
     depends_on:
       - db
     networks:
