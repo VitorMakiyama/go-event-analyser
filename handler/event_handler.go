@@ -165,6 +165,8 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("UpdateEvent - Received request for id: ", id)
+
 	oldEvent, err := repo.GetEvent(id)
 	if err != nil {
 		if errors.As(err, &repository.ErrorEventIDNotFound{}) {
@@ -178,7 +180,6 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Println("UpdateEvent - Received request for id: ", id)
 
 	request := EventRequest{}
 	err = json.NewDecoder(r.Body).Decode(&request)

@@ -1,5 +1,5 @@
 services:
-  go-event-analyser:
+  go-event-analyser-stg:
     container_name: go-event-analyser-stg
     image: forgejoe.makiyama.dev.br/makiyama-dev/go-event-analyser:latest
     # build: .
@@ -11,11 +11,11 @@ services:
     volumes:
       - ./.env:/usr/src/app/.env  
     depends_on:
-      - db
+      - db-stg
     networks:
-      - go-event-analyser
+      - go-event-analyser-stg
 
-  db:
+  db-stg:
     container_name: go-event-postgres-stg
     image: postgres:latest
     # restart: always
@@ -34,18 +34,18 @@ services:
       - 5442:5432 # HOST_PORT:CONTAINER_PORT
     env_file: ".env"
     networks:
-      - go-event-analyser
+      - go-event-analyser-stg
 
-  adminer:
+  adminer-stg:
     container_name: go-event-adminer-stg
     image: adminer
     # restart: always
     ports:
-      - 5433:8080
+      - 5443:8080
     networks:
-      - go-event-analyser
+      - go-event-analyser-stg
 
 networks:
-  go-event-analyser:
+  go-event-analyser-stg:
     name: go-event-analyser-net-stg
     external: false
