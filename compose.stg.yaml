@@ -6,10 +6,10 @@ services:
     # restart: always
     ports:
       - 1002:3333
-    env_file: ".env"
+    env_file: ".stg/.env"
     # injeta o .env local no container
     volumes:
-      - ./.env:/usr/src/app/.env  
+      - .stg/.env:/usr/src/app/.env  
     depends_on:
       - db-stg
     networks:
@@ -28,11 +28,11 @@ services:
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
     volumes:
-      - ./migrations-stg:/docker-entrypoint-initdb.d
+      - .stg/migrations:/docker-entrypoint-initdb.d
       #- ./postgres:/var/lib/postgresql # for PRD
     ports:
       - 5442:5432 # HOST_PORT:CONTAINER_PORT
-    env_file: ".env"
+    env_file: ".stg/.env"
     networks:
       - go-event-analyser-stg
 
