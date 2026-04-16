@@ -1,16 +1,24 @@
-package handler
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
-	"go-event-analyser/repository"
+	"go-event-analyser/internal/repository"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-var repo repository.Repository = repository.NewPostgreSQLRepository()
+type SubjectHandler struct {
+	repo repository.Repository // Must be a service! will change later
+}
+
+func NewSubjectHandler(repository repository.Repository) SubjectHandler {
+	return SubjectHandler{
+		repo: repository,
+	}
+}
 
 type CreateSubjectRequest struct {
 	Name        string `json:"name"`
@@ -31,7 +39,7 @@ func CreateResponse(s repository.Subject) repository.Subject {
 	}
 }
 
-func CreateSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) CreateSubject(w http.ResponseWriter, r *http.Request) {
 	request := CreateSubjectRequest{}
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -45,7 +53,7 @@ func CreateSubject(w http.ResponseWriter, r *http.Request) {
 		Name:        request.Name,
 		Description: request.Description,
 	}
-	newSubject.ID, err = repo.InsertSubject(newSubject)
+	newSubject.ID, err = s.repo.InsertSubject(newSubject)
 	if err != nil {
 		fmt.Println("error inserting subject: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -58,7 +66,7 @@ func CreateSubject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func GetSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 	if err != nil {
 		fmt.Println("error getting query params: ", err)
@@ -67,7 +75,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("GetSubject - Received request for id: %d\n", id)
 
-	subject, err := repo.GetSubject(id)
+	subject, err := s.repo.GetSubject(id)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result") {
 			w.WriteHeader(http.StatusNotFound)

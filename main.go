@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"go-event-analyser/handler"
+	"go-event-analyser/handlers"
+	"go-event-analyser/internal/repository"
+	"go-event-analyser/internal/services"
 	"log"
 	"net/http"
 	"time"
@@ -22,16 +24,21 @@ func main() {
 	// Ping...
 	r.Get("/ping", ping)
 
+	var repository repository.Repository = repository.NewPostgreSQLRepository()
+	
 	// Events
+	service := services.NewEventsService(repository)
+	eventHandler := handlers.NewEventsHandler(service)
 	eventsBase := "/events"
-	r.Post(eventsBase, handler.CreateEvent)
-	r.Get(eventsBase, handler.GetEvent)
-	r.Put(eventsBase, handler.UpdateEvent)
+	r.Post(eventsBase, eventHandler.CreateEvent)
+	r.Get(eventsBase, eventHandler.GetEvent)
+	r.Put(eventsBase, eventHandler.UpdateEvent)
 
 	// Subjects
+	subjectHandler := handlers.NewSubjectHandler(repository)
 	subjectBase := "/subjects"
-	r.Post(subjectBase, handler.CreateSubject)
-	r.Get(subjectBase, handler.GetSubject)
+	r.Post(subjectBase, subjectHandler.CreateSubject)
+	r.Get(subjectBase, subjectHandler.GetSubject)
 
 	log.Println("Listening on port 3333...")
 	http.ListenAndServe(":3333", r)
