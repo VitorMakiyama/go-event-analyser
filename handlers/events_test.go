@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEventHandler_CreateEvent(t *testing.T) {
+func TestEventsHandler_CreateEvent(t *testing.T) {
 	timeString := "2026-03-24T22:16:20-03:00"
 	parsedTime, _ := time.Parse(time.RFC3339, timeString)
 
@@ -152,7 +152,7 @@ func TestEventHandler_CreateEvent(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/events", bytes.NewBuffer(jsonData))
 			req.Header.Set("Content-Type", "application/json")
 
-			// create the recoder (it captures the handler response)
+			// Create the recoder (it captures the handler response)
 			w := httptest.NewRecorder()
 
 			// Calls my handler
@@ -176,18 +176,18 @@ func getJSONFromStringOrStruct(body interface{}) (jsonData []byte, err error) {
 	// Verify body type
 	switch v := body.(type) {
 	case string:
-		// Se já é string, apenas transforma em bytes
+		// If it is already a string, just convert it to bytes
 		jsonData = []byte(v)
 	case []byte:
 		jsonData = v
 	default:
-		// Se for struct, faz o Marshal normalmente
+		// If it is a struct, Marshall it normally
 		jsonData, err = json.Marshal(v)
 	}
 	return jsonData, err
 }
 
-func TestEventHandler_GetEvent(t *testing.T) {
+func TestEventsHandler_GetEvent(t *testing.T) {
 	tests := []struct {
 		name           string
 		eventID        string
@@ -253,7 +253,7 @@ func TestEventHandler_GetEvent(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req.Header.Set("Content-Type", "application/json")
 
-			// create the recoder (it captures the handler response)
+			// Create the recoder (it captures the handler response)
 			w := httptest.NewRecorder()
 
 			// Calls my handler
@@ -273,7 +273,7 @@ func TestEventHandler_GetEvent(t *testing.T) {
 	}
 }
 
-func TestEventHandler_UpdateEvent(t *testing.T) {
+func TestEventsHandler_UpdateEvent(t *testing.T) {
 	timeString := "2026-03-24T22:16:20-03:00"
 	dateTime := time.Date(2026, time.March, 24, 16, 20, 0, 0, time.Now().Location())
 
@@ -389,7 +389,7 @@ func TestEventHandler_UpdateEvent(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonData))
 			req.Header.Set("Content-Type", "application/json")
 
-			// create the recoder (it captures the handler response)
+			// Create the recoder (it captures the handler response)
 			w := httptest.NewRecorder()
 
 			// Calls my handler

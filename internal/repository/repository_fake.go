@@ -77,6 +77,11 @@ func (r RepositoryFake) GetEvent(id int64) (Event, error) {
 	return e, nil
 }
 
+// GetAllEventsFromSubject implements [Repository].
+func (r RepositoryFake) GetAllEventsFromSubject(subject_id int64) ([]Event, error) {
+	panic("unimplemented")
+}
+
 // GetSubject implements [Repository].
 func (r RepositoryFake) GetSubject(id int64) (Subject, error) {
 	s, ok := r.subjects[id]
@@ -84,6 +89,15 @@ func (r RepositoryFake) GetSubject(id int64) (Subject, error) {
 		return Subject{}, ErrorSubjectIDNotFound{}
 	}
 	return s, nil
+}
+
+// GetAllSubjects implements [Repository].
+func (r RepositoryFake) GetAllSubjects() ([]Subject, error) {
+	var subjectsSlice []Subject
+	for _, s := range r.subjects {
+		subjectsSlice = append(subjectsSlice, s)
+	}
+	return subjectsSlice, nil
 }
 
 // InsertEvent implements [Repository].
@@ -98,7 +112,12 @@ func (r RepositoryFake) InsertEvent(e Event) (int64, error) {
 
 // InsertSubject implements [Repository].
 func (r RepositoryFake) InsertSubject(s Subject) (int64, error) {
-	panic("unimplemented")
+	if s.ID < 0 {
+		return s.ID, errors.New("")
+	}
+	id := int64(len(r.subjects) + 1)
+	r.subjects[id] = s
+	return id, nil
 }
 
 // UpdateEvent implements [Repository].

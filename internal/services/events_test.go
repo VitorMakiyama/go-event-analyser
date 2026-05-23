@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEventService_Create(t *testing.T) {
+func TestEventsService_Create(t *testing.T) {
 	dateTimeWithConflict := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.Now().Location())
 	dateTime := time.Date(2026, time.March, 24, 16, 20, 0, 0, time.Now().Location())
 
@@ -115,7 +115,7 @@ func TestEventService_Create(t *testing.T) {
 	}
 }
 
-func TestEventService_Get(t *testing.T) {
+func TestEventsService_Get(t *testing.T) {
 	tests := []struct {
 		name           string
 		eventID        int64
@@ -170,7 +170,7 @@ func TestEventService_Get(t *testing.T) {
 	}
 }
 
-func TestEventService_Update(t *testing.T) {
+func TestEventsService_Update(t *testing.T) {
 	dateTimeWithConflict := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.Now().Location())
 
 	tests := []struct {
@@ -261,7 +261,7 @@ func TestEventService_Update(t *testing.T) {
 	}
 }
 
-func TestEventService_Error(t *testing.T) {
+func TestEventsService_Error(t *testing.T) {
 	date :=  time.Date(2026, time.March, 24, 16, 20, 0, 0, time.Now().Location())
 	e := ErrorEventDateConflict{
 		date: date,

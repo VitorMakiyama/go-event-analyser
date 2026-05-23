@@ -25,11 +25,13 @@ func (e *Event) GetDateOnly() string {
 type Repository interface {
 	InsertSubject(s Subject) (int64, error)
 	GetSubject(id int64) (Subject, error)
+	GetAllSubjects() ([]Subject, error)
 	UpdateSubject(s Subject) (Subject, error)
 	DeleteSubject(id int64) (int64, error)
 
 	InsertEvent(e Event) (int64, error)
 	GetEvent(id int64) (Event, error)
+	GetAllEventsFromSubject(subject_id int64) ([]Event, error)
 	UpdateEvent(e Event) (Event, error)
 	DeleteEvent(id int64) (int64, error)
 	CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error)

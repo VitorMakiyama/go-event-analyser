@@ -124,7 +124,7 @@ func parseTimeFromStringRFC3339(timeString string) (time.Time, error) {
 func (e *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 	if err != nil {
-		log.Println("error getting query params: ", err)
+		log.Println("GetEvent - error getting query params: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -133,11 +133,11 @@ func (e *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	event, err := e.service.Get(id)
 	if err != nil {
 		if errors.As(err, &repository.ErrorEventIDNotFound{}) {
-			log.Println("event_id not found in DB: ", err)
+			log.Println("GetEvent - event_id not found in DB: ", err)
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("error getting event: ", err)
+			log.Println("GetEvent - error getting event: ", err)
 		}
 		return
 	}
@@ -150,7 +150,7 @@ func (e *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 func (e *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 	if err != nil {
-		log.Println("error getting query params: ", err)
+		log.Println("UpdateEvent - error getting query params: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -160,7 +160,7 @@ func (e *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	request := EventRequest{}
 	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		log.Println("error decoding request body: ", err, " Body:", r.Body)
+		log.Println("UpdateEvent - error decoding request body: ", err, " Body:", r.Body)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -175,19 +175,19 @@ func (e *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	updatedEvent, err := e.service.Update(newEvent)
 	if err != nil {
 		if errors.As(err, &repository.ErrorEventIDNotFound{}) {
-			log.Println("event_id not found in DB: ", err)
+			log.Println("UpdateEvent - event_id not found in DB: ", err)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		} else {
 			// Unknwon error
-			log.Println("error inserting event: ", err)
+			log.Println("UpdateEvent - error inserting event: ", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
 
 	response := CreateEventResponse(updatedEvent)
-	log.Printf("updated event %v to %v", newEvent, updatedEvent)
+	log.Printf("UpdateEvent - updated event %v to %v", newEvent, updatedEvent)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)

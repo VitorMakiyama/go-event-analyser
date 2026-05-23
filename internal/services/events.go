@@ -54,7 +54,7 @@ func (es *EventsService) Create(e repository.Event) (repository.Event, error) {
 func (es *EventsService) Get(id int64) (repository.Event, error) {
 	event, err := es.repository.GetEvent(id)
 	if err != nil {
-		log.Println("error getting event: ", err)
+		log.Println("EventsService - error getting event: ", err)
 		return repository.Event{}, err
 	}
 	return event, nil
@@ -64,7 +64,7 @@ func (es *EventsService) Update(newEvent repository.Event) (repository.Event, er
 	oldEvent, err := es.repository.GetEvent(newEvent.ID)
 	if err != nil {
 		// Unknwon error
-		log.Println("error getting event: ", err)
+		log.Println("EventsService - error getting event: ", err)
 		return repository.Event{}, err
 	}
 
@@ -76,7 +76,7 @@ func (es *EventsService) Update(newEvent repository.Event) (repository.Event, er
 	}
 	updatedEvent, err = es.repository.UpdateEvent(updatedEvent)
 	if err != nil {
-		log.Println("error inserting event: ", err)
+		log.Println("EventsService - error inserting event: ", err)
 		return repository.Event{}, err
 	}
 	return updatedEvent, nil

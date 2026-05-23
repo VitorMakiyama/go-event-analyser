@@ -36,3 +36,38 @@ func (es *EventsServiceFake) Delete(id int64) (int64, error) {
 	}
 	return id, nil
 }
+
+// Subject
+
+type SubjectsServiceFake struct {
+	CallbackCreate func(s repository.Subject) (repository.Subject, error)
+	CallbackGet    func(id int64) (repository.Subject, error)
+	CallbackGetAll func() []repository.Subject
+	CallbackUpdate func(s repository.Subject) (repository.Subject, error)
+	CallbackDelete func(id int64) (int64, error)
+}
+
+func (ss *SubjectsServiceFake) Create(newSubject repository.Subject) (repository.Subject, error) {
+	if ss.CallbackCreate != nil {
+		return ss.CallbackCreate(newSubject)
+	}
+	return newSubject, nil
+}
+func (ss *SubjectsServiceFake) Get(id int64) (repository.Subject, error) {
+	if ss.CallbackGet != nil {
+		return ss.CallbackGet(id)
+	}
+	return repository.Subject{ID: id}, nil
+}
+func (ss *SubjectsServiceFake) GetAll() []repository.Subject {
+	if ss.CallbackGetAll != nil {
+		return ss.CallbackGetAll()
+	}
+	return []repository.Subject{{}, {}}
+}
+func (ss *SubjectsServiceFake) Update(s repository.Subject) (repository.Subject, error) {
+	panic("unimplemented")
+}
+func (ss *SubjectsServiceFake) Delete(id int64) (int64, error) {
+	panic("unimplemented")
+}

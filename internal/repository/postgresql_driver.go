@@ -102,6 +102,26 @@ func (pr PostgreSQLRepository) GetSubject(id int64) (s Subject, err error) {
 	return s, err
 }
 
+// GetAllSubjects implements [Repository].
+func (pr PostgreSQLRepository) GetAllSubjects() ([]Subject, error) {
+	rows, err := pr.db.Query(`SELECT * FROM subjects`)
+	if err != nil {
+		// Unknown error
+		return []Subject{}, err
+	}
+
+	var subjects []Subject
+	for rows.Next() {
+		var s Subject
+		if err := rows.Scan(&s.ID, &s.Name, &s.Description); err != nil {
+			// Error scanning one of the rows, return already scanned rows and the error
+			return subjects, err
+		}
+		subjects = append(subjects, s)
+	}
+	return subjects, nil
+}
+
 func (pr PostgreSQLRepository) UpdateSubject(s Subject) (Subject, error) {
 	uSubject := Subject{}
 	sql := `UPDATE subjects SET name=$2, description=$3 WHERE id=$1 RETURNING id, name, description`
@@ -156,6 +176,11 @@ func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 	return e, err
 }
 
+// GetAllEventsFromSubject implements [Repository].
+func (pr PostgreSQLRepository) GetAllEventsFromSubject(subject_id int64) ([]Event, error) {
+	panic("unimplemented")
+}
+
 // UpdateEvent implements [Repository].
 func (pr PostgreSQLRepository) UpdateEvent(e Event) (Event, error) {
 	uEvent := Event{}
@@ -184,9 +209,10 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-
-//	Verifies if there is already a entry with the same date (based on insert_ts) converting both to local date, via DATE and AT TIME ZONE
-// passing the currently loaded IANA timezone, in database. insert_ts should always be on localtime
+//	Verifies if there is already a entry with the same date (based on insert_ts) converting both to
+//
+// local date, via DATE and AT TIME ZONE passing the currently loaded IANA timezone, in database.
+// insert_ts should always be on localtime
 func (pr PostgreSQLRepository) CheckEventExistenceByDate(insertTS time.Time) (foundE Event, err error) {
 	sql := `SELECT * FROM events WHERE DATE(insert_ts AT TIME ZONE $2)=DATE($1 AT TIME ZONE $2)`
 	err = pr.db.QueryRow(sql, insertTS.Format(time.RFC3339), pr.currentLocation.String()).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)

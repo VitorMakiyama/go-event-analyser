@@ -25,7 +25,7 @@ func main() {
 	r.Get("/ping", ping)
 
 	var repository repository.Repository = repository.NewPostgreSQLRepository()
-	
+
 	// Events
 	service := services.NewEventsService(repository)
 	eventHandler := handlers.NewEventsHandler(service)
@@ -35,10 +35,17 @@ func main() {
 	r.Put(eventsBase, eventHandler.UpdateEvent)
 
 	// Subjects
-	subjectHandler := handlers.NewSubjectHandler(repository)
+	subjectsService := services.NewSubjectsService(repository)
+	subjectHandler := handlers.NewSubjectsHandler(subjectsService)
 	subjectBase := "/subjects"
 	r.Post(subjectBase, subjectHandler.CreateSubject)
 	r.Get(subjectBase, subjectHandler.GetSubject)
+
+	// Reports
+	reportsService := services.NewReportsServices()
+	reportsHandler := handlers.NewReportsHandler(reportsService)
+	reportsBase := "/reports"
+	r.Get(reportsBase+"/types", reportsHandler.GetReportTypes)
 
 	log.Println("Listening on port 3333...")
 	http.ListenAndServe(":3333", r)
