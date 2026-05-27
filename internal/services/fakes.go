@@ -71,3 +71,22 @@ func (ss *SubjectsServiceFake) Update(s repository.Subject) (repository.Subject,
 func (ss *SubjectsServiceFake) Delete(id int64) (int64, error) {
 	panic("unimplemented")
 }
+
+type ReportsServiceFake struct {
+	CallbackGetReportTypes func() []string
+	CallbackGetReport      func(reportType string, subject_id int64) (ReportData, error)
+}
+
+func (rs ReportsServiceFake) GetReportTypes() []string {
+	if rs.CallbackGetReportTypes != nil {
+		return rs.CallbackGetReportTypes()
+	}
+	return reportTypes
+}
+
+func (rs ReportsServiceFake) GetReport(reportType string, subject_id int64) (ReportData, error) {
+	if rs.CallbackGetReport != nil {
+		return rs.CallbackGetReport(reportType, subject_id)
+	}
+	return ReportData{Type: reportType}, nil
+}

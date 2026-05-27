@@ -178,7 +178,24 @@ func (pr PostgreSQLRepository) GetEvent(id int64) (e Event, err error) {
 
 // GetAllEventsFromSubject implements [Repository].
 func (pr PostgreSQLRepository) GetAllEventsFromSubject(subject_id int64) ([]Event, error) {
-	panic("unimplemented")
+	sql := `SELECT * FROM events WHERE subject_id = $1 ORDER BY insert_ts ASC`
+	rows, err := pr.db.Query(sql, subject_id)
+	if err != nil {
+		// Unknown error
+		return []Event{}, err
+	}
+
+	var events []Event
+	for rows.Next() {
+		var e Event
+		if err = rows.Scan(&e.ID, &e.SubjectID, &e.Occurrences, &e.InsertTS, &e.LastUpdate); err != nil {
+			// Error scanning one of the rows, return already scanned rows and the error
+			return events, err
+		}
+		events = append(events, e)
+	}
+
+	return events, nil
 }
 
 // UpdateEvent implements [Repository].
@@ -213,9 +230,9 @@ func (pr PostgreSQLRepository) DeleteEvent(id int64) (int64, error) {
 //
 // local date, via DATE and AT TIME ZONE passing the currently loaded IANA timezone, in database.
 // insert_ts should always be on localtime
-func (pr PostgreSQLRepository) CheckEventExistenceByDate(insertTS time.Time) (foundE Event, err error) {
-	sql := `SELECT * FROM events WHERE DATE(insert_ts AT TIME ZONE $2)=DATE($1 AT TIME ZONE $2)`
-	err = pr.db.QueryRow(sql, insertTS.Format(time.RFC3339), pr.currentLocation.String()).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
+func (pr PostgreSQLRepository) CheckEventExistenceByDate(insertTS time.Time, subject_id int64) (foundE Event, err error) {
+	sql := `SELECT * FROM events WHERE subject_id = $3 AND DATE(insert_ts AT TIME ZONE $2)=DATE($1 AT TIME ZONE $2)`
+	err = pr.db.QueryRow(sql, insertTS.Format(time.RFC3339), pr.currentLocation.String(), subject_id).Scan(&foundE.ID, &foundE.SubjectID, &foundE.Occurrences, &foundE.InsertTS, &foundE.LastUpdate)
 	if err != nil {
 		return foundE, err
 	}

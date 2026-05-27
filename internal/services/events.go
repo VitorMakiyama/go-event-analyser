@@ -33,7 +33,7 @@ func (es *EventsService) Create(e repository.Event) (repository.Event, error) {
 	}
 
 	// Verify if there is already a inserted_ts with the same date (comparing both on Local time), return early with status 409 - Conflict
-	foundE, err := es.repository.CheckEventExistenceByDate(e.InsertTS)
+	foundE, err := es.repository.CheckEventExistenceByDate(e.InsertTS, e.SubjectID)
 	if err == nil {
 		// Found an Event with same inserted_ts, conflict!
 		log.Printf("EventsService - found an event with date %s in db\n", foundE.InsertTS.Format(time.DateOnly))

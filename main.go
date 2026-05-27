@@ -42,10 +42,11 @@ func main() {
 	r.Get(subjectBase, subjectHandler.GetSubject)
 
 	// Reports
-	reportsService := services.NewReportsServices()
+	reportsService := services.NewReportsService(repository)
 	reportsHandler := handlers.NewReportsHandler(reportsService)
 	reportsBase := "/reports"
 	r.Get(reportsBase+"/types", reportsHandler.GetReportTypes)
+	r.Get(reportsBase, reportsHandler.GetReport)
 
 	log.Println("Listening on port 3333...")
 	http.ListenAndServe(":3333", r)

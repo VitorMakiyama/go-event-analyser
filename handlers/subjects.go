@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"go-event-analyser/internal/repository"
 	"go-event-analyser/internal/services"
 	"log"
@@ -57,7 +56,7 @@ func (s *SubjectsHandler) CreateSubject(w http.ResponseWriter, r *http.Request) 
 	request := CreateSubjectRequest{}
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		fmt.Println("CreateSubject - error decoding request body: ", err, " Body:", r.Body)
+		log.Println("CreateSubject - error decoding request body: ", err, " Body:", r.Body)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -69,7 +68,7 @@ func (s *SubjectsHandler) CreateSubject(w http.ResponseWriter, r *http.Request) 
 	}
 	newSubject, err = s.service.Create(newSubject)
 	if err != nil {
-		fmt.Println("CreateSubject - error inserting subject: ", err)
+		log.Println("CreateSubject - error inserting subject: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -92,7 +91,7 @@ func (s *SubjectsHandler) GetSubject(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(queryID, 10, 64)
 	if err != nil {
-		fmt.Println("GetSubject - error getting query params: ", err)
+		log.Println("GetSubject - error getting query params: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -105,7 +104,7 @@ func (s *SubjectsHandler) GetSubject(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		fmt.Println("GetSubject - error getting subject: ", err)
+		log.Println("GetSubject - error getting subject: ", err)
 		return
 	}
 

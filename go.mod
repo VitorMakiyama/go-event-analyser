@@ -7,6 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
 	github.com/stretchr/testify v1.11.1
+	gonum.org/v1/gonum v0.17.0
 )
 
 require (

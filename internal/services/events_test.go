@@ -31,7 +31,7 @@ func TestEventsService_Create(t *testing.T) {
 			},
 			wantError: nil,
 			expectedResult: repository.Event{
-				ID:          2,
+				ID:          5,
 				SubjectID:   1,
 				Occurrences: 1,
 				InsertTS:    dateTime,

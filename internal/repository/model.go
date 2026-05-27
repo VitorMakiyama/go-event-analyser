@@ -34,5 +34,5 @@ type Repository interface {
 	GetAllEventsFromSubject(subject_id int64) ([]Event, error)
 	UpdateEvent(e Event) (Event, error)
 	DeleteEvent(id int64) (int64, error)
-	CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error)
+	CheckEventExistenceByDate(insert_ts time.Time, subject_id int64) (foundE Event, err error)
 }

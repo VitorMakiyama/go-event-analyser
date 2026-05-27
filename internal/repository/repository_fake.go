@@ -32,6 +32,27 @@ func NewRepositoryFake() Repository {
 			InsertTS:    time.Date(2026, time.January, 01, 0, 0, 0, 0, time.Now().Location()),
 			LastUpdate:  time.Now(),
 		},
+		2: {
+			ID:          2,
+			SubjectID:   2,
+			Occurrences: 1,
+			InsertTS:    time.Date(2026, time.January, 01, 0, 0, 0, 0, time.Now().Location()),
+			LastUpdate:  time.Now(),
+		},
+		3: {
+			ID:          3,
+			SubjectID:   2,
+			Occurrences: 2,
+			InsertTS:    time.Date(2026, time.January, 8, 0, 0, 0, 0, time.Now().Location()),
+			LastUpdate:  time.Now(),
+		},
+		4: {
+			ID:          4,
+			SubjectID:   2,
+			Occurrences: 3,
+			InsertTS:    time.Date(2026, time.February, 1, 0, 0, 0, 0, time.Now().Location()),
+			LastUpdate:  time.Now(),
+		},
 	}
 	return RepositoryFake{
 		subjects: subjects,
@@ -40,13 +61,13 @@ func NewRepositoryFake() Repository {
 }
 
 // CheckEventExistenceByDate implements [Repository].
-func (r RepositoryFake) CheckEventExistenceByDate(insert_ts time.Time) (foundE Event, err error) {
+func (r RepositoryFake) CheckEventExistenceByDate(insert_ts time.Time, subject_id int64) (foundE Event, err error) {
 	if insert_ts.IsZero() {
 		return Event{}, errors.New("")
 	}
 
 	for _, e := range r.events {
-		if e.InsertTS.Format(time.DateOnly) == insert_ts.Format(time.DateOnly) {
+		if e.SubjectID == subject_id && e.InsertTS.Format(time.DateOnly) == insert_ts.Format(time.DateOnly) {
 			return e, nil
 		}
 	}
@@ -79,7 +100,18 @@ func (r RepositoryFake) GetEvent(id int64) (Event, error) {
 
 // GetAllEventsFromSubject implements [Repository].
 func (r RepositoryFake) GetAllEventsFromSubject(subject_id int64) ([]Event, error) {
-	panic("unimplemented")
+	// unknown error
+	if subject_id == -1 {
+		return []Event{}, errors.New("")
+	}
+
+	var events []Event
+	for _, e := range r.events {
+		if e.SubjectID == subject_id {
+			events = append(events, e)
+		}
+	}
+	return events, nil
 }
 
 // GetSubject implements [Repository].
