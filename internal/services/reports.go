@@ -67,6 +67,7 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 
 	case reportTypes[1]:
 		// CHART report
+		reportData.Details = generateChartReport(e)
 	default:
 		// Unknown reportType
 		return ReportData{}, ErrorReportTypeNotFound{
@@ -77,14 +78,15 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 	return reportData, nil
 }
 
+
 func generateBasicReport(events []repository.Event) BasicReport {
 	yearWeekMap := make(map[int]map[int]int) // map[{Year}]map[{Week}]{Occurrences}
 	yearMonthMap := make(map[string]int)     // map[{"YearMonth"}]{{Occurrences}}
 	var startDate time.Time = time.Now()
 	var totalOccurrences int
-
+	
 	var occurrences []float64 // For calculating sigma (Variance^1/2)
-
+	
 	for _, e := range events {
 		if e.InsertTS.Before(startDate) {
 			// Gets the first date (oldest) from all events
@@ -96,20 +98,20 @@ func generateBasicReport(events []repository.Event) BasicReport {
 			yearWeekMap[year] = make(map[int]int)
 		}
 		yearMonthMap[fmt.Sprintf("%d%d", year, e.InsertTS.Month())] += e.Occurrences
-
+		
 		yearWeekMap[year][week] += e.Occurrences
-
+		
 		occurrences = append(occurrences, float64(e.Occurrences))
 		totalOccurrences += e.Occurrences
 	}
 	weeklyFrequency, monthlyFrequency := calculateFrequencies(yearWeekMap, yearMonthMap, float64(totalOccurrences))
-
+	
 	var sigma = 0.0
 	if len(occurrences) > 1 {
 		var variance float64 = stat.Variance(occurrences, nil)
 		sigma = math.Sqrt(variance)
 	}
-
+	
 	return BasicReport{
 		Weekly:           strconv.FormatFloat(weeklyFrequency, 'f', 2, 64),
 		Monthly:          strconv.FormatFloat(monthlyFrequency, 'f', 2, 64),
@@ -125,22 +127,27 @@ func calculateFrequencies(yearWeekMap map[int]map[int]int, yearMonthMap map[stri
 	for _, year := range yearWeekMap {
 		nWeeks += len(year)
 	}
-
+	
 	nMonths := len(yearMonthMap)
-
+	
 	weekly = totalOccurrences / float64(nWeeks)
 	if math.IsNaN(weekly) {
 		// If division by 0
 		weekly = 0
 	}
-
+	
 	monthly = totalOccurrences / float64(nMonths)
 	if math.IsNaN(monthly) {
 		// If division by 0
 		monthly = 0
 	}
-
+	
 	return weekly, monthly
+}
+
+func generateChartReport(e []repository.Event) string {
+	//TODO: Implement it
+	return "unimplemented"
 }
 
 // Custom Errors for this reports service
