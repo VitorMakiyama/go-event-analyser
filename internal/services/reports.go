@@ -24,8 +24,10 @@ type ReportData struct {
 type BasicReport struct {
 	Weekly           string `json:"weekly"`
 	Monthly          string `json:"monthly"`
+	Yearly           string `json:"yearly"`
 	Sigma            string `json:"sigma"`
 	StartDate        string `json:"start_date"`
+	EndDate          string `json:"end_date"`
 	TotalOccurrences string `json:"total_occurrences"`
 }
 
@@ -70,7 +72,7 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 		reportData.Details = generateChartReport(e)
 	default:
 		// Unknown reportType
-		return ReportData{}, ErrorReportTypeNotFound{
+		return ReportData{Details: ""}, ErrorReportTypeNotFound{
 			ReportType: reportType,
 		}
 	}
@@ -78,19 +80,26 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 	return reportData, nil
 }
 
-
 func generateBasicReport(events []repository.Event) BasicReport {
 	yearWeekMap := make(map[int]map[int]int) // map[{Year}]map[{Week}]{Occurrences}
 	yearMonthMap := make(map[string]int)     // map[{"YearMonth"}]{{Occurrences}}
 	var startDate time.Time = time.Now()
+	var endDate time.Time = time.Now()
+	if len(events) != 0 {
+		endDate = events[len(events)-1].InsertTS
+	}
 	var totalOccurrences int
-	
+
 	var occurrences []float64 // For calculating sigma (Variance^1/2)
-	
+
 	for _, e := range events {
 		if e.InsertTS.Before(startDate) {
 			// Gets the first date (oldest) from all events
 			startDate = e.InsertTS
+		}
+		if e.InsertTS.After(endDate) {
+			// Gets the lasat date (newest) from all events
+			endDate = e.InsertTS
 		}
 		year, week := e.InsertTS.ISOWeek()
 		if week, _ := yearWeekMap[year]; week == nil {
@@ -98,51 +107,57 @@ func generateBasicReport(events []repository.Event) BasicReport {
 			yearWeekMap[year] = make(map[int]int)
 		}
 		yearMonthMap[fmt.Sprintf("%d%d", year, e.InsertTS.Month())] += e.Occurrences
-		
+
 		yearWeekMap[year][week] += e.Occurrences
-		
+
 		occurrences = append(occurrences, float64(e.Occurrences))
 		totalOccurrences += e.Occurrences
 	}
-	weeklyFrequency, monthlyFrequency := calculateFrequencies(yearWeekMap, yearMonthMap, float64(totalOccurrences))
-	
+	weeklyFrequency, monthlyFrequency, yearlyFrequency := calculateFrequencies(startDate, endDate, float64(totalOccurrences))
+
 	var sigma = 0.0
 	if len(occurrences) > 1 {
 		var variance float64 = stat.Variance(occurrences, nil)
 		sigma = math.Sqrt(variance)
 	}
-	
+
 	return BasicReport{
 		Weekly:           strconv.FormatFloat(weeklyFrequency, 'f', 2, 64),
 		Monthly:          strconv.FormatFloat(monthlyFrequency, 'f', 2, 64),
+		Yearly:           strconv.FormatFloat(yearlyFrequency, 'f', 2, 64),
 		Sigma:            strconv.FormatFloat(sigma, 'f', 2, 64),
 		StartDate:        startDate.Format(time.DateOnly),
+		EndDate:          endDate.Format(time.DateOnly),
 		TotalOccurrences: strconv.Itoa(totalOccurrences),
 	}
 }
 
-func calculateFrequencies(yearWeekMap map[int]map[int]int, yearMonthMap map[string]int, totalOccurrences float64) (weekly float64, monthly float64) {
-	// nYears := len(yearWeekMap) // If need to calculate yearly frequency
-	nWeeks := 0
-	for _, year := range yearWeekMap {
-		nWeeks += len(year)
-	}
+func calculateFrequencies(startDate time.Time, endDate time.Time, totalOccurrences float64) (weekly float64, monthly float64, yearly float64) {
+	startYear, startWeek := startDate.ISOWeek()
+	endYear, endWeek := endDate.ISOWeek()
+	nYears := endYear - startYear // represents the number of full years, if nYears == 0 means the start and end Year are the same
+	nWeeks:= (nYears * 52) + (endWeek - startWeek + 1) // the real average number of weeks is 52.1429
 	
-	nMonths := len(yearMonthMap)
-	
+	nMonths := (nYears * 12) + (int(endDate.Month()) - int(startDate.Month()) + 1)
+
 	weekly = totalOccurrences / float64(nWeeks)
 	if math.IsNaN(weekly) {
 		// If division by 0
 		weekly = 0
 	}
-	
+
 	monthly = totalOccurrences / float64(nMonths)
 	if math.IsNaN(monthly) {
 		// If division by 0
 		monthly = 0
 	}
-	
-	return weekly, monthly
+
+	yearly = totalOccurrences / float64(nYears + 1) // when start and end Year are the same, add 1 because the same year is 1 year for this calculation
+	if math.IsNaN(yearly) {
+		yearly = 0
+	}
+
+	return weekly, monthly, yearly
 }
 
 func generateChartReport(e []repository.Event) string {
