@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"slices"
 	"time"
 )
 
@@ -35,19 +36,26 @@ func NewRepositoryFake() Repository {
 		2: {
 			ID:          2,
 			SubjectID:   2,
-			Occurrences: 1,
-			InsertTS:    time.Date(2026, time.January, 01, 0, 0, 0, 0, time.Now().Location()),
+			Occurrences: 5,
+			InsertTS:    time.Date(2025, time.December, 1, 0, 0, 0, 0, time.Now().Location()),
 			LastUpdate:  time.Now(),
 		},
 		3: {
 			ID:          3,
 			SubjectID:   2,
-			Occurrences: 2,
-			InsertTS:    time.Date(2026, time.January, 8, 0, 0, 0, 0, time.Now().Location()),
+			Occurrences: 1,
+			InsertTS:    time.Date(2026, time.January, 01, 0, 0, 0, 0, time.Now().Location()),
 			LastUpdate:  time.Now(),
 		},
 		4: {
 			ID:          4,
+			SubjectID:   2,
+			Occurrences: 2,
+			InsertTS:    time.Date(2026, time.January, 8, 0, 0, 0, 0, time.Now().Location()),
+			LastUpdate:  time.Now(),
+		},
+		5: {
+			ID:          5,
 			SubjectID:   2,
 			Occurrences: 3,
 			InsertTS:    time.Date(2026, time.February, 1, 0, 0, 0, 0, time.Now().Location()),
@@ -111,6 +119,13 @@ func (r RepositoryFake) GetAllEventsFromSubject(subject_id int64) ([]Event, erro
 			events = append(events, e)
 		}
 	}
+	slices.SortFunc(events, func(a, b Event) int {
+		if a.InsertTS.Before(b.InsertTS) {
+			return -1
+		} else {
+			return 1
+		}
+	})
 	return events, nil
 }
 

@@ -33,7 +33,10 @@ func TestReportsHandler_GetReportTypes(t *testing.T) {
 
 	var reportTypes = []string{
 		"BASIC",
-		"CHART",
+		"CHART_DAILY",
+		"CHART_WEEKLY",
+		"CHART_MONTHLY",
+		"CHART_YEARLY",
 	}
 
 	var res []string

@@ -5,6 +5,7 @@ import (
 	"go-event-analyser/internal/repository"
 	"log"
 	"math"
+	"slices"
 	"strconv"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 
 var reportTypes = []string{
 	"BASIC",
-	"CHART",
+	"CHART_DAILY",
+	"CHART_WEEKLY",
+	"CHART_MONTHLY",
+	"CHART_YEARLY",
 }
 
 type ReportData struct {
@@ -29,6 +33,11 @@ type BasicReport struct {
 	StartDate        string `json:"start_date"`
 	EndDate          string `json:"end_date"`
 	TotalOccurrences string `json:"total_occurrences"`
+}
+
+type ChartReport struct {
+	Data    []int    `json:"data"`
+	XLabels []string `json:"x_labels"`
 }
 
 type ReportsServiceBase interface {
@@ -68,8 +77,17 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 		reportData.Details = generateBasicReport(e)
 
 	case reportTypes[1]:
-		// CHART report
-		reportData.Details = generateChartReport(e)
+		// CHART_DAILY report
+		reportData.Details = generateDailyChartReport(e)
+	case reportTypes[2]:
+		// CHART_WEEKLY report
+		reportData.Details = generateWeeklyChartReport(e)
+	case reportTypes[3]:
+		// CHART_MONTHLY report
+		reportData.Details = generateMonthlyChartReport(e)
+	case reportTypes[4]:
+		// CHART_YEARLY report
+		reportData.Details = generateYearlyChartReport(e)
 	default:
 		// Unknown reportType
 		return ReportData{Details: ""}, ErrorReportTypeNotFound{
@@ -81,8 +99,6 @@ func (rs *ReportsService) GetReport(reportType string, subject_id int64) (Report
 }
 
 func generateBasicReport(events []repository.Event) BasicReport {
-	yearWeekMap := make(map[int]map[int]int) // map[{Year}]map[{Week}]{Occurrences}
-	yearMonthMap := make(map[string]int)     // map[{"YearMonth"}]{{Occurrences}}
 	var startDate time.Time = time.Now()
 	var endDate time.Time = time.Now()
 	if len(events) != 0 {
@@ -101,14 +117,6 @@ func generateBasicReport(events []repository.Event) BasicReport {
 			// Gets the lasat date (newest) from all events
 			endDate = e.InsertTS
 		}
-		year, week := e.InsertTS.ISOWeek()
-		if week, _ := yearWeekMap[year]; week == nil {
-			// Instantiate this year map of weeks, if i was not already instantiate
-			yearWeekMap[year] = make(map[int]int)
-		}
-		yearMonthMap[fmt.Sprintf("%d%d", year, e.InsertTS.Month())] += e.Occurrences
-
-		yearWeekMap[year][week] += e.Occurrences
 
 		occurrences = append(occurrences, float64(e.Occurrences))
 		totalOccurrences += e.Occurrences
@@ -133,11 +141,12 @@ func generateBasicReport(events []repository.Event) BasicReport {
 }
 
 func calculateFrequencies(startDate time.Time, endDate time.Time, totalOccurrences float64) (weekly float64, monthly float64, yearly float64) {
+	//TODO: improve this frequencies calculation, especially for weekly
 	startYear, startWeek := startDate.ISOWeek()
 	endYear, endWeek := endDate.ISOWeek()
-	nYears := endYear - startYear // represents the number of full years, if nYears == 0 means the start and end Year are the same
-	nWeeks:= (nYears * 52) + (endWeek - startWeek + 1) // the real average number of weeks is 52.1429
-	
+	nYears := endYear - startYear                       // represents the number of full years, if nYears == 0 means the start and end Year are the same
+	nWeeks := (nYears * 52) + (endWeek - startWeek + 1) // the real average number of weeks is 52.1429
+
 	nMonths := (nYears * 12) + (int(endDate.Month()) - int(startDate.Month()) + 1)
 
 	weekly = totalOccurrences / float64(nWeeks)
@@ -152,7 +161,7 @@ func calculateFrequencies(startDate time.Time, endDate time.Time, totalOccurrenc
 		monthly = 0
 	}
 
-	yearly = totalOccurrences / float64(nYears + 1) // when start and end Year are the same, add 1 because the same year is 1 year for this calculation
+	yearly = totalOccurrences / float64(nYears+1) // when start and end Year are the same, add 1 because the same year is 1 year for this calculation
 	if math.IsNaN(yearly) {
 		yearly = 0
 	}
@@ -160,9 +169,128 @@ func calculateFrequencies(startDate time.Time, endDate time.Time, totalOccurrenc
 	return weekly, monthly, yearly
 }
 
-func generateChartReport(e []repository.Event) string {
+// Returns slices ordered by InsertTS ascending
+// years: 	slice with one of each year encountered
+// months: 	slice of slices where the inner slice contains one of each month of a year, the outer slice represents the year, the same index of 'years' slices works here
+// weeks: 	slice of slices where the inner slice contains one of each week of a year, the outer slice represents the year, the same index of 'years' slices works here
+func getYearWeekMonthOrderedSlices(events []repository.Event) (years []int, months [][]int, weeks [][]int) {
+	for _, e := range events {
+		year, week := e.InsertTS.ISOWeek()
+		month := int(e.InsertTS.Month())
+
+		if !slices.Contains(years, year) {
+			years = append(years, year)
+			months = append(months, []int{})
+			weeks = append(weeks, []int{})
+		}
+
+		yearIndex := slices.Index(years, year)
+		if yearIndex != -1 && !slices.Contains(months[yearIndex], month) {
+			months[yearIndex] = append(months[yearIndex], month)
+		}
+
+		if yearIndex != -1 && !slices.Contains(weeks[yearIndex], week) {
+			weeks[yearIndex] = append(weeks[yearIndex], week)
+		}
+	}
+
+	return
+}
+
+func generateDailyChartReport(events []repository.Event) ChartReport {
+	var data []int
+	var xLabels []string
+
+	var lastDate time.Time
+
+	for _, e := range events {
+		d := e.InsertTS.Sub(lastDate)
+		if d.Hours() > 24 && !lastDate.IsZero() {
+			for !(lastDate.Year() == e.InsertTS.Year() && lastDate.Month() == e.InsertTS.Month() && lastDate.Day() == e.InsertTS.Day()) {
+				data = append(data, 0)
+				xLabels = append(xLabels, lastDate.Format(time.DateOnly))
+				lastDate = lastDate.Add(24 * time.Hour)
+			}
+		}
+		data = append(data, e.Occurrences)
+		xLabels = append(xLabels, e.InsertTS.Format(time.DateOnly))
+		lastDate = e.InsertTS.Add(24 * time.Hour)
+	}
+
+	return ChartReport{
+		Data:    data,
+		XLabels: xLabels,
+	}
+}
+
+func generateWeeklyChartReport(events []repository.Event) ChartReport {
+	var data []int
+	var xLabels []string
+
+	var lastDate time.Time
+
+	for _, e := range events {
+		lastYear, lastWeek := lastDate.ISOWeek()
+		thisYear, thisWeek := e.InsertTS.ISOWeek()
+		xLabel := fmt.Sprintf("%d-%d", thisYear, thisWeek)
+
+		if !lastDate.IsZero() && lastWeek != thisWeek {
+			for !(lastYear == thisYear && lastWeek == thisWeek) {
+				// While thisYear and thisWeek are different from lastYear and lastWeek...
+				lastDate = lastDate.Add(7 * 24 * time.Hour) // Add 7 days
+
+				lastYear, lastWeek = lastDate.ISOWeek()
+				zeroLabel := fmt.Sprintf("%d-%d", lastYear, lastWeek)
+
+				data = append(data, 0)
+				xLabels = append(xLabels, zeroLabel)
+
+				if lastYear == thisYear && lastWeek == thisWeek {
+					// Add this e occurrences
+					data[len(data)-1] += e.Occurrences
+				}
+			}
+		} else if !slices.Contains(xLabels, xLabel) {
+			// If xLabels does NOT contains xLabel, add it
+			data = append(data, e.Occurrences)
+			xLabels = append(xLabels, xLabel)
+			lastDate = e.InsertTS
+		} else {
+			// Else, lastWeek == thisWeek and the week already in the labels, so we add the occurrences!
+			data[len(data)-1] += e.Occurrences
+		}
+	}
+
+	return ChartReport{
+		Data:    data,
+		XLabels: xLabels,
+	}
+}
+
+func generateMonthlyChartReport(events []repository.Event) ChartReport {
 	//TODO: Implement it
-	return "unimplemented"
+	return ChartReport{}
+}
+
+func generateYearlyChartReport(events []repository.Event) ChartReport {
+	var data []int
+	var xLabels []string
+
+	for _, e := range events {
+		year := strconv.Itoa(e.InsertTS.Year())
+		if slices.Contains(xLabels, year) {
+			index := slices.Index(xLabels, year)
+
+			data[index] += e.Occurrences
+		} else {
+			data = append(data, e.Occurrences)
+			xLabels = append(xLabels, year)
+		}
+	}
+	return ChartReport{
+		Data:    data,
+		XLabels: xLabels,
+	}
 }
 
 // Custom Errors for this reports service

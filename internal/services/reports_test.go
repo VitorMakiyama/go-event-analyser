@@ -37,8 +37,10 @@ func TestReportsService_GetReport(t *testing.T) {
 				Details: BasicReport{
 					Weekly:           "1.00",
 					Monthly:          "1.00",
+					Yearly:           "1.00",
 					Sigma:            "0.00",
 					StartDate:        "2026-01-01",
+					EndDate:          "2026-01-01",
 					TotalOccurrences: "1",
 				},
 			},
@@ -50,11 +52,13 @@ func TestReportsService_GetReport(t *testing.T) {
 			expectedResult: ReportData{
 				Type: "BASIC",
 				Details: BasicReport{
-					Weekly:           "2.00",
-					Monthly:          "3.00",
-					Sigma:            "1.00",
-					StartDate:        "2026-01-01",
-					TotalOccurrences: "6",
+					Weekly:           "1.22",
+					Monthly:          "3.67",
+					Yearly:           "5.50",
+					Sigma:            "1.71",
+					StartDate:        "2025-12-01",
+					EndDate:          "2026-02-01",
+					TotalOccurrences: "11",
 				},
 			},
 		},
@@ -67,9 +71,157 @@ func TestReportsService_GetReport(t *testing.T) {
 				Details: BasicReport{
 					Weekly:           "0.00",
 					Monthly:          "0.00",
+					Yearly:           "0.00",
 					Sigma:            "0.00",
 					StartDate:        time.Now().Format(time.DateOnly),
+					EndDate:          time.Now().Format(time.DateOnly),
 					TotalOccurrences: "0",
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Daily report with 1 event",
+			reportType: reportTypes[1], // CHART_DAILY
+			subjectID:  1,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_DAILY",
+				Details: ChartReport{
+					Data: []int{
+						1,
+					},
+					XLabels: []string{
+						"2026-01-01",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Daily report with multiple events",
+			reportType: reportTypes[1], // CHART_DAILY
+			subjectID:  2,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_DAILY",
+				Details: ChartReport{
+					Data: []int{
+						5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+						1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+						3,
+					},
+					XLabels: []string{
+						"2025-12-01", "2025-12-02", "2025-12-03", "2025-12-04", "2025-12-05", "2025-12-06", "2025-12-07", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11", "2025-12-12", "2025-12-13", "2025-12-14", "2025-12-15", "2025-12-16", "2025-12-17", "2025-12-18", "2025-12-19", "2025-12-20", "2025-12-21", "2025-12-22", "2025-12-23", "2025-12-24", "2025-12-25", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29", "2025-12-30", "2025-12-31",
+						"2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31",
+						"2026-02-01",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Weekly report with 1 event",
+			reportType: reportTypes[2], // CHART_WEEKLY
+			subjectID:  1,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_WEEKLY",
+				Details: ChartReport{
+					Data: []int{
+						1,
+					},
+					XLabels: []string{
+						"2026-1",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Weekly report with multiple events",
+			reportType: reportTypes[2], // CHART_WEEKLY
+			subjectID:  2,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_WEEKLY",
+				Details: ChartReport{
+					Data: []int{
+						5, 0, 0, 0,
+						1, 2, 0, 0, 3,
+					},
+					XLabels: []string{
+						"2025-49", "2025-50", "2025-51", "2025-52",
+						"2026-1", "2026-2", "2026-3", "2026-4", "2026-5",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Monthly report with 1 event",
+			reportType: reportTypes[3], // CHART_MONTHLY
+			subjectID:  1,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_MONTHLY",
+				Details: ChartReport{
+					Data: []int{
+						1,
+					},
+					XLabels: []string{
+						"2026-01",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Monthly report with multiple events",
+			reportType: reportTypes[3], // CHART_MONTHLY
+			subjectID:  2,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_MONTHLY",
+				Details: ChartReport{
+					Data: []int{
+						5,
+						3, 3,
+					},
+					XLabels: []string{
+						"2025-12",
+						"2026-01", "2026-02",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Yearly report with 1 event",
+			reportType: reportTypes[4], // CHART_YEARLY
+			subjectID:  1,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_YEARLY",
+				Details: ChartReport{
+					Data: []int{
+						1,
+					},
+					XLabels: []string{
+						"2026",
+					},
+				},
+			},
+		},
+		{
+			name:       "OK - Chart Yearly report with multiple events",
+			reportType: reportTypes[4], // CHART_YEARLY
+			subjectID:  2,
+			wantError:  nil,
+			expectedResult: ReportData{
+				Type: "CHART_YEARLY",
+				Details: ChartReport{
+					Data: []int{
+						5,
+						6,
+					},
+					XLabels: []string{
+						"2025",
+						"2026",
+					},
 				},
 			},
 		},
@@ -81,11 +233,14 @@ func TestReportsService_GetReport(t *testing.T) {
 			expectedResult: ReportData{},
 		},
 		{
-			name:           "Error - report not found",
-			reportType:     "TEST", // BASIC
-			subjectID:      1,
-			wantError:      ErrorReportTypeNotFound{},
-			expectedResult: ReportData{},
+			name:       "Error - report not found",
+			reportType: "TEST", // BASIC
+			subjectID:  1,
+			wantError:  ErrorReportTypeNotFound{},
+			expectedResult: ReportData{
+				Type:    "",
+				Details: "",
+			},
 		},
 	}
 
