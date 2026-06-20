@@ -268,8 +268,30 @@ func generateWeeklyChartReport(events []repository.Event) ChartReport {
 }
 
 func generateMonthlyChartReport(events []repository.Event) ChartReport {
-	//TODO: Implement it
-	return ChartReport{}
+	ptBRMonths := []string {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"}
+	var data []int
+	var xLabels []string
+
+	for _, e := range events {
+		year := e.InsertTS.Year()
+		month := e.InsertTS.Month()
+		
+		xLabel := fmt.Sprintf("%d-%s", year, ptBRMonths[month - 1])
+
+		if slices.Contains(xLabels, xLabel) {
+			index := slices.Index(xLabels, xLabel)
+
+			data[index] += e.Occurrences
+		} else {
+			data = append(data, e.Occurrences)
+			xLabels = append(xLabels, xLabel)
+		}
+	}
+
+	return ChartReport{
+		Data:    data,
+		XLabels: xLabels,
+	}
 }
 
 func generateYearlyChartReport(events []repository.Event) ChartReport {

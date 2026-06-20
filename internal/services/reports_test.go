@@ -165,7 +165,7 @@ func TestReportsService_GetReport(t *testing.T) {
 						1,
 					},
 					XLabels: []string{
-						"2026-01",
+						"2026-Jan",
 					},
 				},
 			},
@@ -183,8 +183,8 @@ func TestReportsService_GetReport(t *testing.T) {
 						3, 3,
 					},
 					XLabels: []string{
-						"2025-12",
-						"2026-01", "2026-02",
+						"2025-Dez",
+						"2026-Jan", "2026-Fev",
 					},
 				},
 			},
